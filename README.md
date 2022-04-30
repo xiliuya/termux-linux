@@ -16,3 +16,6 @@ termux run lxc-images (alpine、archlinux、ubuntu、kali、centos、debian、fe
 3、等待下载完成，按照提示，执行对应启动脚本。
 
 本脚本参照anlinux，并在其基础上适配了lxc-images下各容器。
+
+-----20220430------
+新增 qemu-user 模式
