@@ -4,6 +4,8 @@ arch=""
 #linux="archlinux";
 #linux_ver="";
 qemu_command=""
+proot_command="proot"
+
 if [ ! -d ~/storage ] && [ -x "termux-setup-storage" ]; then
 	termux-setup-storage
 fi
@@ -32,6 +34,13 @@ x86_64)
 	exit 1
 	;;
 esac
+
+if [ ! -x "$(command -v proot)" ]; then
+	curl -o proot https://ghproxy.com/https://github.com/proot-me/proot/releases/download/v5.3.0/proot-v5.3.0-${arch}-static
+	chmod 755 proot
+	proot_command="$(pwd)/proot"
+
+fi
 
 echo "********************************"
 echo "   请选择安装的系统架构   "
@@ -236,7 +245,7 @@ cur=$(pwd)
 mkdir -p "$linux"
 cd "$linux"
 echo "正在解压rootfs，请稍候"
-proot tar -xJf ${cur}/${linux}.tar.xz --exclude='dev' --exclude='etc/rc.d' --exclude='usr/lib64/pm-utils'
+${proot_command} tar -xJf ${cur}/${linux}.tar.xz --exclude='dev' --exclude='etc/rc.d' --exclude='usr/lib64/pm-utils'
 #proot --link2symlink tar -xJf ${cur}/${linux}.tar.xz --exclude='dev' --exclude='etc/rc.d' --exclude='usr/lib64/pm-utils'
 echo "更新DNS"
 echo "127.0.0.1 localhost" >etc/hosts
@@ -428,7 +437,7 @@ cat >$bin <<-EOM
 	cd \$(dirname \$0)
 	## unset LD_PRELOAD in case termux-exec is installed
 	unset LD_PRELOAD
-	command="proot"
+	command="$proot_command "
 	command+=" --link2symlink"
 	command+=" -0"
 	command+=" -r $linux"
@@ -456,8 +465,10 @@ cat >$bin <<-EOM
 	fi
 EOM
 
-echo "fixing shebang of $bin"
-termux-fix-shebang $bin
+if [ -x "$(command -v termux-fix-shebang)" ]; then
+	echo "fixing shebang of $bin"
+	termux-fix-shebang $bin
+fi
 echo "授予 $bin 执行权限"
 chmod +x $bin
 echo "正在删除镜像文件"
