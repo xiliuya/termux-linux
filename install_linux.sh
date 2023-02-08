@@ -39,6 +39,7 @@ if [ ! -x "$(command -v proot)" ]; then
 	curl -o proot https://ghproxy.com/https://github.com/proot-me/proot/releases/download/v5.3.0/proot-v5.3.0-${arch}-static
 	chmod 755 proot
 	proot_command="$(pwd)/proot"
+        echo "使用静态 proot 文件."
 
 fi
 
