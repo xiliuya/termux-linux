@@ -5,6 +5,7 @@ arch=""
 #linux_ver="";
 qemu_command=""
 proot_command="proot"
+mirror_base_url=""
 
 if [ ! -d ~/storage ] && [ -x "termux-setup-storage" ]; then
 	termux-setup-storage
@@ -35,8 +36,8 @@ x86_64)
 	;;
 esac
 
-if [ ! -x "$(command -v proot)" ]; then
-	curl -o proot https://ghproxy.com/https://github.com/proot-me/proot/releases/download/v5.3.0/proot-v5.3.0-${arch}-static
+if [ ! -x "$(command -v proot)" ] && [ ! -f "proot" ]; then
+	curl -Ljo proot "https://github.com/proot-me/proot/releases/download/v5.3.0/proot-v5.3.0-$(uname -m)-static"
 	chmod 755 proot
 	proot_command="$(pwd)/proot"
         echo "使用静态 proot 文件."
@@ -219,11 +220,15 @@ if [ $newarch != $arch ]; then
 fi
 
 if ! [ -f ${linux}.tar.xz ]; then
-	if ! [ -f images.json ]; then
-		curl -O "https://mirrors.tuna.tsinghua.edu.cn/lxc-images/streams/v1/images.json"
+	if ! [ -f images.table ]; then
+		curl "https://mirrors.tuna.tsinghua.edu.cn/lxc-images/" \
+		| grep "<tr><td>" |  awk 'BEGIN{RS="<tr>|</tr>"; FS="<td>|</td>"} \
+		{ print $2, $4, $6 ,$8, $10 }' | sed '/^[[:space:]]*$/d' > images.table
 	fi
-	#解析json
-	rootfs_url=$(cat images.json | awk -F '[,"}]' '{for(i=1;i<=NF;i++){ print $i}}' | grep "images/${linux}/" | grep "${linux_ver}" | grep "/${arch}/default/" | grep "rootfs.tar.xz" | awk 'END {print}')
+	#解析 table
+	rootfs_url="$(cat images.table \
+	| grep "${linux}" | grep "${linux_ver}" | grep "${arch}" | grep "default" \
+	| awk 'match($0, /<a href="([^"]*)"/, m) {print m[1]}')/rootfs.tar.xz"
 	echo "https://mirrors.tuna.tsinghua.edu.cn/lxc-images/${rootfs_url}"
 	if [ $rootfs_url ]; then
 		echo "正在下载"
